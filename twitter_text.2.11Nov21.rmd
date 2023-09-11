@@ -1,0 +1,112 @@
+# https://www.r-bloggers.com/2016/11/extract-twitter-data-automatically-using-scheduler-r-package/
+---
+title: "Text Correlation"
+author: "Barry von Tobel"
+date: "11/11/2021"
+output: 
+  html_document:
+  toc: true
+toc_float: true
+toc_collapsed: true
+number_sections: true
+toc_depth: 3
+theme: tufte::tufte_html
+# theme: lumen
+editor_options: 
+  chunk_output_type: console
+---
+# G
+# 
+
+####
+```{r initial, echo=FALSE}
+setwd("/home/bvt/Dropbox/eng_science/R/wd/7Sins")
+
+
+shh <- suppressPackageStartupMessages # It's a library
+shh(library("jsonlite"))
+shh(library("httr"))
+shh(library("cronR"))
+shh(library("dplyr"))
+
+Sys.setenv(BEARER_TOKEN = "AAAAAAAAAAAAAAAAAAAAAFY0VwEAAAAA3wcalkP9FNXMCpUo1VsSpkw%2BOU8%3DO4hRgYo8Yq93xrdmSV955uLbf0dxTvN4VcY7MpGxWA9vUKZBpH")
+      
+bearer_token <- Sys.getenv("BEARER_TOKEN")
+#bearer_token <- "akdkjf"
+headers <- c(`Authorization` = sprintf('Bearer %s', bearer_token))
+
+params <- list(`user.fields` = 'description',
+               `expansion` = 'pinned_tweet_id')
+      
+#handle <- readline('$USERNAME')
+handle <- "bjvt"
+#handle <- '$MITREcorp'
+
+url_handle <-
+  sprintf('https://api.twitter.com/2/users/by?usernames=%s', handle)
+   ##   
+response <-
+  httr::GET(url = url_handle,
+            httr::add_headers(.headers = headers),
+            query = params)
+obj <- httr::content(response, as = "text")
+print(obj)
+      
+json_data <- fromJSON(obj, flatten = TRUE) %>% as.data.frame
+View(json_data)
+      
+final <-
+  sprintf(
+    "Handle: %s\nBio: %s\nPinned Tweet: %s",
+    json_data$data.username,
+    json_data$data.description,
+    json_data$includes.tweets.text
+  )
+
+      
+cat(final)
+
+    
+
+    
+
+```
+Th
+```{r twitter.scrape.1, eval=FALSE, include=FALSE}
+# Extract the tweets using usertimeline function from the Twitter R package:
+clinton_tweets <- userTimeline("HillaryClinton", n = 3200)
+tweetsc.df <- twListToDF(clinton_tweets)
+dim(tweetsc.df)
+# Create a variable called date and become to character:
+date<-Sys.Date()
+date<-as.character(date)
+name<-paste(date,".RData")
+#Finally we save the Rdata using as name the date from the download
+save(tweetsc.df, file =name)
+# The script before is for download the data from twitter.
+taskscheduler_create(taskname = "taskclinton", rscript = clintontweets, 
+  schedule = "DAILY", starttime = "11:30", startdate = format(Sys.Date(), "%d/%m/%Y")) 
+#   ?
+```
+TK Plot
+
+```{r extract2, eval=FALSE, include=FALSE}
+term.freq <- rowSums(as.matrix(tdm))
+term.freq = 45)
+#we saved the data in a data frame
+df <- data.frame(term = names(term.freq), freq = term.freq)
+save(df,file="tqfclinton50.RData")
+#plot with ggplot2
+library(ggplot2)
+ggplot(df, aes(x = term, y = freq)) + geom_bar(stat = "identity") +
+xlab("Terms") + ylab("Count") + coord_flip()
+
+```
+
+This one is done with R Library ggraph and is the current (Sept21) version
+
+```{r text.analysis.1, echo=FALSE, include=FALSE}
+ # copy 
+#groups(clu)
+```
+

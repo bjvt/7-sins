@@ -1,0 +1,180 @@
+---
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+# <https://rpubs.com/meisenbach/272229>
+#https://www.geeksforgeeks.org/naive-bayes-classifier-in-r-programming/
+
+---
+title: "Text Correlation"
+author: "Barry von Tobel"
+date: "11/11/2021"
+output: 
+  html_document:
+  toc: true
+toc_float: true
+toc_collapsed: true
+number_sections: true
+toc_depth: 2
+theme: tufte::tufte_html
+# theme: lumen
+editor_options: 
+  chunk_output_type: console
+---
+
+# G
+
+# 
+
+#### 
+
+```{r initial, echo=FALSE}
+setwd("/home/bvt/Dropbox/eng_science/R/wd/7Sins/sentiment")
+
+
+shh <- suppressPackageStartupMessages # It's a library
+shh(library("readxl"))
+shh(library("tm"))
+shh(library("wordcloud"))
+shh(library("e1071"))
+shh(library("gmodels"))
+shh(library("SnowballC"))
+
+```
+
+# Th
+
+```{r yelp.1, eval=TRUE, include=TRUE}
+yelp_labelled <- read_excel("yelp_labelled.xlsx")
+yelp_labelled$score <- factor(yelp_labelled$score)
+
+# Check the counts of positive and negative scores
+table(yelp_labelled$score)
+
+# Create a corpus from the sentences
+yelp_corpus <- VCorpus(VectorSource(yelp_labelled$sentence))
+
+# create a document-term sparse matrix directly from the corpus
+yelp_dtm <- DocumentTermMatrix(yelp_corpus, control = list(
+  tolower = TRUE,
+  removeNumbers = TRUE,
+  stopwords = TRUE,
+  removePunctuation = TRUE,
+  stemming = TRUE
+))
+
+# creating training and test datasets
+yelp_dtm_train <- yelp_dtm[1:800, ]
+yelp_dtm_test  <- yelp_dtm[801:1000, ]
+
+# also save the labels
+yelp_train_labels <- yelp_labelled[1:800, ]$score
+yelp_test_labels  <- yelp_labelled[801:1000, ]$score
+
+# check that the proportion of spam is similar
+prop.table(table(yelp_train_labels))
+
+# Proportions are not the same. We will need to use sampling
+
+rm(yelp_dtm_train)
+rm(yelp_dtm_test)
+rm(yelp_train_labels)
+rm(yelp_test_labels)
+
+# Create random samples
+set.seed(123)
+train_index <- sample(1000, 800)
+
+yelp_train <- yelp_labelled[train_index, ]
+yelp_test  <- yelp_labelled[-train_index, ]
+
+# check the proportion of class variable
+prop.table(table(yelp_train$score))
+
+train_corpus <- VCorpus(VectorSource(yelp_train$sentence))
+test_corpus <- VCorpus(VectorSource(yelp_test$sentence))
+
+positive <- subset(yelp_train, score == 1)
+negative  <- subset(yelp_train, score == 0)
+
+wordcloud(positive$sentence, max.words = 40, scale = c(3, 0.5))
+wordcloud(negative$sentence, max.words = 40, scale = c(3, 0.5))
+# create a document-term sparse matrix directly for train and test
+train_dtm <- DocumentTermMatrix(train_corpus, control = list(
+  tolower = TRUE,
+  removeNumbers = TRUE,
+  stopwords = TRUE,
+  removePunctuation = TRUE,
+  stemming = TRUE
+))
+
+test_dtm <- DocumentTermMatrix(test_corpus, control = list(
+  tolower = TRUE,
+  removeNumbers = TRUE,
+  stopwords = TRUE,
+  removePunctuation = TRUE,
+  stemming = TRUE
+))
+
+train_dtm
+test_dtm
+#Since this is such a small dataset, sparse terms were not removed.
+
+# create function to convert counts to a factor
+convert_counts <- function(x) {
+  x <- ifelse(x > 0, "Yes", "No")
+}
+
+# apply() convert_counts() to columns of train/test data
+train_dtm_binary <- apply(train_dtm, MARGIN = 2, convert_counts)
+test_dtm_binary  <- apply(test_dtm, MARGIN = 2, convert_counts)
+#Step 3: Training a model on the data
+yelp_classifier <- naiveBayes(as.matrix(train_dtm_binary), yelp_train$score)
+#Step 4: Evaluating model performance
+yelp_test_pred <- predict(yelp_classifier, as.matrix(test_dtm_binary))
+head(yelp_test_pred)
+CrossTable(yelp_test_pred, yelp_test$score,
+           prop.chisq = FALSE, prop.t = FALSE, prop.r = FALSE,
+           dnn = c('predicted', 'actual'))
+# Step 5: Improving model performance
+yelp_classifier2 <- naiveBayes(as.matrix(train_dtm_binary), yelp_train$score, laplace = 1)
+# Use Laplace smoothing because the train document term matrix does not contain the terms from the test data.
+
+yelp_test_pred2 <- predict(yelp_classifier2, as.matrix(test_dtm_binary))
+
+CrossTable(yelp_test_pred2, yelp_test$score,
+           prop.chisq = FALSE, prop.t = FALSE, prop.r = FALSE,
+           dnn = c('predicted', 'actual'))
+Accuracy = 0.795
+# The accuracy went down.
+
+yelp_classifier3 <- naiveBayes(as.matrix(train_dtm_binary), yelp_train$score, laplace = .5)
+# Try laplace = .5
+
+yelp_test_pred3 <- predict(yelp_classifier3, as.matrix(test_dtm_binary))
+
+CrossTable(yelp_test_pred3, yelp_test$score,
+           prop.chisq = FALSE, prop.t = FALSE, prop.r = FALSE,
+           dnn = c('predicted', 'actual'))
+```
+
+TK Plot
+
+```{r extract2, eval=FALSE, include=FALSE}
+
+#we saved the data in a data frame
+df <- data.frame(term = names(term.freq), freq = term.freq)
+save(df,file="tqfclinton50.RData")
+#plot with ggplot2
+library(ggplot2)
+ggplot(df, aes(x = term, y = freq)) + geom_bar(stat = "identity") +
+xlab("Terms") + ylab("Count") + coord_flip()
+
+```
+
+This one is done with R Library ggraph and is the current (Sept21) version
+
+```{r texhttps://www.datatechnotes.com/2019/02/sentiment-analysis-example-in-r.htmlcopy 
+#groups(clu)
+```
